@@ -1,8 +1,20 @@
 
 name: Test Trader Scanner
 
+
 on:
   workflow_dispatch:
+    inputs:
+      test_group:
+        description: 'Grupo de pruebas a ejecutar'
+        required: true
+        default: 'historical'
+        type: choice
+        options:
+          - historical
+          - connections
+          - all
+
 
 permissions:
   contents: read
@@ -22,9 +34,11 @@ jobs:
           python-version: '3.11'
 
       - name: Run original Scanner tests
+        if: ${{ inputs.test_group == 'historical' || inputs.test_group == 'all' }}
         run: python -m unittest discover -s tests -p 'test_scanner.py' -v
 
       - name: Test Nasdaq universe offline
+        if: ${{ inputs.test_group == 'historical' || inputs.test_group == 'all' }}
         run: |
           python trader-scanner/scan.py universe \
             --offline tests/fixtures/trader-scanner/symdir \
@@ -33,6 +47,7 @@ jobs:
 
             
       - name: Test daily Scanner offline
+        if: ${{ inputs.test_group == 'historical' || inputs.test_group == 'all' }}
         run: |
           python trader-scanner/scan.py daily \
             --offline tests/fixtures/trader-scanner/daily-spark-2026-10-19.json \
@@ -44,6 +59,7 @@ jobs:
 
             
       - name: Test ORB Scanner offline
+        if: ${{ inputs.test_group == 'historical' || inputs.test_group == 'all' }}
         run: |
           python trader-scanner/scan.py orb \
             --offline tests/fixtures/trader-scanner/wall5m-2026-10-19.json.gz \
@@ -54,6 +70,7 @@ jobs:
 
             
       - name: Test Yahoo Finance connection
+        if: ${{ inputs.test_group == 'connections' || inputs.test_group == 'all' }}
         run: |
           python trader-scanner/scan.py daily \
             --symbols AAPL,MSFT,NVDA \
@@ -64,6 +81,7 @@ jobs:
 
             
       - name: Test live Nasdaq universe
+        if: ${{ inputs.test_group == 'connections' || inputs.test_group == 'all' }}
         run: |
           python trader-scanner/scan.py universe \
             --no-write \
@@ -71,6 +89,7 @@ jobs:
 
             
       - name: Test Yahoo Finance 20 symbols
+        if: ${{ inputs.test_group == 'connections' || inputs.test_group == 'all' }}
         run: |
           python trader-scanner/scan.py daily \
             --symbols AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AMD,INTC,AVGO,JPM,BAC,WMT,COST,KO,PEP,XOM,CVX,DIS,NFLX \
