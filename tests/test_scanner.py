@@ -216,7 +216,7 @@ class Network(unittest.TestCase):
         self.assertEqual(len(failed), 21)
         self.assertIn("HTTP 429", failed["X00"])
         self.assertEqual(self.sleeps, [0.3, scan.BACKOFF])  # a pause between batches, one backoff
-        hits, counts, _ = por hits, counts, _, _ =
+        hits, counts, _, _ = scan.scan_daily(data, syms, scan.parse_now("2026-10-20 09:14"), 5, 1000000)
         self.assertEqual(counts["requested"], 40)
         self.assertEqual(counts["fetched"], 19)
 
@@ -257,7 +257,7 @@ class Daily(unittest.TestCase):
 
     def test_setups_before_the_open(self):
         self.assertEqual(len(self.syms), 19)
-        hits, counts, last = por hits, counts, last, _ =
+        hits, counts, last, _ = scan.scan_daily(self.data, self.syms, scan.parse_now("2026-10-19 09:00"), 0, 0)
         self.assertEqual({h["symbol"]: h["setups"] for h in hits}, self.EXPECT)
         self.assertEqual(last, D(2026, 10, 16))
         self.assertEqual(counts, {"requested": 19, "fetched": 19, "illiquid": 0, "short": 0, "scanned": 19,
@@ -291,13 +291,8 @@ class Daily(unittest.TestCase):
     def test_short_and_empty_charts(self):
         s = {"t": [ts("2026-10-%02d 09:30" % d) for d in range(1, 11)], "c": [10.0] * 10,
              "meta": {"regularMarketPrice": 10, "regularMarketVolume": 5000000}}
-        hits, counts, last, _ = scan.scan_daily(
-            {"X": s, "E": {"t": [], "c": [], "meta": {}}},
-            ["X", "E", "GONE"],
-            scan.parse_now("2026-10-20 09:00"),
-            5,
-            1000000
-        )
+        hits, counts, last, _ = scan.scan_daily({"X": s, "E": {"t": [], "c": [], "meta": {}}}, ["X", "E", "GONE"],
+                                             scan.parse_now("2026-10-20 09:00"), 5, 1000000)
         self.assertEqual(hits, [])
         self.assertEqual((counts["fetched"], counts["short"], counts["illiquid"], counts["scanned"]), (2, 1, 1, 0))
         self.assertIsNone(last)
