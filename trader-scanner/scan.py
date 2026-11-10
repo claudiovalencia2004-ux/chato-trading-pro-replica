@@ -988,6 +988,17 @@ def cmd_orb(a):
            "unconfirmed": counts["unconfirmed"], "source": "yahoo", "or_minutes": a.or_minutes,
            "interval": "%dm" % BAR_MIN,
            "filters": {"min_price": a.min_price, "min_volume": a.min_volume}, "note": NOTE, "hits": hits}
+    doc["quality"] = {
+        "requested": counts["requested"],
+        "fetched": counts["fetched"],
+        "scanned": counts["scanned"],
+        "unusable": counts["unusable"],
+        "illiquid": counts["illiquid"],
+        "failed_symbols": failed,
+        "coverage_pct": round(
+            100 * counts["scanned"] / counts["requested"], 2
+        ) if counts["requested"] else 0.0
+    }
     if a.offline:
         doc["offline"] = os.path.basename(a.offline.rstrip("/"))
     if not a.no_write:
