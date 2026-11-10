@@ -86,6 +86,21 @@ jobs:
           if doc.get("scanned", 0) != doc.get("universe", -1):
               raise SystemExit("Scanner coverage is incomplete")
 
+          hits = doc.get("hits", [])
+
+          if not isinstance(hits, list):
+              raise SystemExit("Invalid hits format")
+
+          for hit in hits:
+              if not isinstance(hit, dict):
+                  raise SystemExit("Invalid hit format")
+
+              if hit.get("close_date") != today:
+                  raise SystemExit(
+                      "Outdated close date for "
+                      + str(hit.get("symbol", "UNKNOWN"))
+                  )
+
           print("Daily Scanner date validated:", today)
           PY
 
