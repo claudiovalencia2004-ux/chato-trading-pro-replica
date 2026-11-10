@@ -23,3 +23,10 @@ jobs:
 
       - name: Run original Scanner tests
         run: python -m unittest discover -s tests -p 'test_scanner.py' -v
+
+      - name: Test Nasdaq universe offline
+        run: |
+          python trader-scanner/scan.py universe \
+            --offline tests/fixtures/trader-scanner/symdir \
+            --no-write \
+            --json
