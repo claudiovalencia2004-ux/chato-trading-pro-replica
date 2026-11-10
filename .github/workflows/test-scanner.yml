@@ -98,6 +98,24 @@ jobs:
             --no-write \
             --json
 
+            
+      - name: Diagnose ORB offline errors
+        if: ${{ inputs.test_group == 'historical' || inputs.test_group == 'all' }}
+        run: |
+          python - <<'PY'
+          import importlib.util
+          spec = importlib.util.spec_from_file_location("scanner", "trader-scanner/scan.py")
+          scanner = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(scanner)
+          path = "tests/fixtures/trader-scanner/wall5m-2026-10-19.json.gz"
+          data, errors = scanner.load_offline(path)
+          print("Symbols with offline errors:", len(errors))
+          for symbol, reason in sorted(errors.items()):
+              print(f"{symbol}: {reason}")
+          print("Symbols with usable parsed data:", len(data))
+          PY
+
+
 
 
 
