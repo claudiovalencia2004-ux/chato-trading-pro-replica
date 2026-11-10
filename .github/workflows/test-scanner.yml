@@ -30,3 +30,15 @@ jobs:
             --offline tests/fixtures/trader-scanner/symdir \
             --no-write \
             --json
+
+            
+      - name: Test daily Scanner offline
+        run: |
+          python trader-scanner/scan.py daily \
+            --offline tests/fixtures/trader-scanner/daily-spark-2026-10-19.json \
+            --now "2026-10-19 10:15" \
+            --min-price 0 \
+            --min-volume 0 \
+            --no-write \
+            --json
+
