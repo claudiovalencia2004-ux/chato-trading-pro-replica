@@ -30,21 +30,52 @@ jobs:
             --out trader/scan-daily.json \
             --json
 
+            
+      - name: Run ORB Scanner offline   
+        if: ${{ !cancelled() }}
+        run: |
+          set +e
+          python trader-scanner/scan.py orb \
+            --offline tests/fixtures/trader-scanner/wall5m-2026-10-19.json.gz \
+            --now "2026-10-19 10:15" \
+            --min-price 0 \
+            --out trader/scan-orb.json \
+            --json
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 0 ]; then
+            exit 0
+          elif [ "$STATUS" -eq 1 ] && [ -f trader/scan-orb.json ]; then
+            python -c "import json; d=json.load(open('trader/scan-orb.json')); assert d.get('mode') == 'orb' and isinstance(d.get('hits'), list)"
+          else
+            exit "$STATUS"
+          fi
+
+
       - name: Create timestamped Scanner result
-        if: ${{ always() && hashFiles('trader/scan-daily.json') != '' }}
+        if: ${{ !cancelled() && (hashFiles('trader/scan-daily.json') != '' || hashFiles('trader/scan-orb.json') != '') }}
         run: |
           mkdir -p trader/history
           TIMESTAMP=$(date -u +'%Y-%m-%d_%H-%M-%S')
-          cp trader/scan-daily.json \
-            "trader/history/scan-daily-${TIMESTAMP}-${GITHUB_RUN_ID}.json"
+          if [ -f trader/scan-daily.json ]; then
+            cp trader/scan-daily.json \
+              "trader/history/scan-daily-${TIMESTAMP}-${GITHUB_RUN_ID}.json"
+          fi
+          if [ -f trader/scan-orb.json ]; then
+            cp trader/scan-orb.json \
+              "trader/history/scan-orb-${TIMESTAMP}-${GITHUB_RUN_ID}.json"
+          fi
+
+
 
       - name: Save Scanner artifact
-        if: ${{ always() && hashFiles('trader/scan-daily.json') != '' }}
+        if: ${{ !cancelled() && (hashFiles('trader/scan-daily.json') != '' || hashFiles('trader/scan-orb.json') != '') }}
         uses: actions/upload-artifact@v4
         with:
           name: scanner-daily-${{ github.run_id }}
           path: |
             trader/scan-daily.json
+            trader/scan-orb.json
             trader/history/*.json
           if-no-files-found: error
           retention-days: 30
