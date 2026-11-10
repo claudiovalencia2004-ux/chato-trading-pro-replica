@@ -701,6 +701,7 @@ def scan_orb(stage1, symbols, day, cutoff, or_minutes, min_price=0.0, min_volume
         bars = session_bars(s, day, cutoff)
         if not usable(bars, day, cutoff, n_range):
             counts["unusable"] += 1
+            failed[sym] = "unusable intraday bars: missing or incomplete 5-minute candles"
             continue
         vol = sum(b["v"] for b in bars) if s.get("v") else (s.get("meta") or {}).get("regularMarketVolume") or 0
         if bars[-1]["c"] < min_price or vol < min_volume:
@@ -979,8 +980,18 @@ def cmd_orb(a):
             return parse_chart(yahoo_get(chart_path(sym, rng, "%dm" % BAR_MIN)), sym)
     hits, counts, failed2 = scan_orb(data, symbols, day, cutoff, a.or_minutes, a.min_price, a.min_volume, confirm,
                                      a.max_confirm)
-    failed = dict(failed or {})
-    failed.update(failed2)
+    load_errors = dict(failed or {})
+    unusable_symbols = {
+        sym: reason
+        for sym, reason in failed2.items()
+        if reason.startswith("unusable intraday bars:")
+    }
+    failed = dict(load_errors)
+    failed.update({
+        sym: reason
+        for sym, reason in failed2.items()
+        if sym not in unusable_symbols
+    })
     nfailed = len([s for s in symbols if s in failed])
     as_of = "%s %s ET" % (day.isoformat(), cutoff.strftime("%H:%M"))
     doc = {"created_by": "trader-scanner", "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "mode": "orb",
@@ -995,6 +1006,7 @@ def cmd_orb(a):
         "unusable": counts["unusable"],
         "illiquid": counts["illiquid"],
         "failed_symbols": failed,
+        "unusable_symbols": unusable_symbols,
         "coverage_pct": round(
             100 * counts["scanned"] / counts["requested"], 2
         ) if counts["requested"] else 0.0
