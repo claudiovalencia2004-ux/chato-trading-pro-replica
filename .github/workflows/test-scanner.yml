@@ -42,3 +42,14 @@ jobs:
             --no-write \
             --json
 
+            
+      - name: Test ORB Scanner offline
+        run: |
+          python trader-scanner/scan.py orb \
+            --offline tests/fixtures/trader-scanner/wall5m-2026-10-19.json.gz \
+            --now "2026-10-19 10:15" \
+            --min-price 0 \
+            --no-write \
+            --json
+
+
