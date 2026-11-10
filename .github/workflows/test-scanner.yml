@@ -144,7 +144,19 @@ jobs:
 
           print("Unusable ORB charts:", len(unusable))
           for symbol in unusable:
-              print("Unusable:", symbol)
+              bars = scanner.session_bars(data[symbol], day, cutoff) 
+              expected_count = int(
+                  (cutoff - scanner.slot(day, 0)).total_seconds()
+                  // (scanner.BAR_MIN * 60)
+              )
+              expected = [
+                  scanner.slot(day, k)
+                  for k in range(expected_count)
+              ]
+              available = {b["start"] for b in bars}
+              missing = [t.strftime("%H:%M") for t in expected if t not in available]
+              print(f"{symbol}: {len(bars)} velas disponibles de {len(expected)} esperadas")
+              print("Velas faltantes:", ", ".join(missing) if missing else "Ninguna")
           PY
 
 
