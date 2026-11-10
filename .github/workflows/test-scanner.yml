@@ -133,7 +133,7 @@ jobs:
           data, errors = scanner.load_offline(path)
 
           day = datetime.date(2026, 10, 19)
-          cutoff = datetime.time(10, 15)
+          cutoff = datetime.datetime.combine(day, datetime.time(10, 15))
           n_range = 15 // scanner.BAR_MIN
 
           unusable = []
