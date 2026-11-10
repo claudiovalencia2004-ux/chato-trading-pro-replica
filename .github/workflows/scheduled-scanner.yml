@@ -3,6 +3,9 @@ name: Scheduled Trading Scanner
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 22 * * 1-5'
+    - cron: '0 23 * * 1-5'
 
 permissions:
   contents: read
@@ -17,15 +20,30 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Check New York schedule
+        id: market_time
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          elif [ "$(TZ=America/New_York date +%H)" = "18" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_scan=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Checkout repository
+        if: ${{ steps.market_time.outputs.run_scan == 'true' }}
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: ${{ steps.market_time.outputs.run_scan == 'true' }}
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Run Daily Scanner
+        if: ${{ steps.market_time.outputs.run_scan == 'true' }}
         run: |
           python trader-scanner/scan.py daily \
             --symbols AAPL,MSFT,NVDA \
@@ -39,8 +57,40 @@ jobs:
           elif [ "$STATUS" -ne 0 ]; then
             exit "$STATUS"
           fi
+      - name: Validate Daily Scanner date
+        if: ${{ steps.market_time.outputs.run_scan == 'true' }}
+        run: |
+          python - <<'PY'
+          import json
+          import datetime
+          from zoneinfo import ZoneInfo
+
+          with open("trader/scan-daily.json", encoding="utf-8") as f:
+              doc = json.load(f)
+
+          today = datetime.datetime.now(
+              ZoneInfo("America/New_York")
+          ).date().isoformat()
+
+          if doc.get("as_of") != today + " close":
+              raise SystemExit(
+                  "Scanner data is not from today's market close"
+              )
+
+          if doc.get("mode") != "daily":
+              raise SystemExit("Invalid scanner mode")
+
+          if doc.get("failed", 0) != 0:
+              raise SystemExit("Scanner reported data failures")
+
+          if doc.get("scanned", 0) != doc.get("universe", -1):
+              raise SystemExit("Scanner coverage is incomplete")
+
+          print("Daily Scanner date validated:", today)
+          PY
 
       - name: Save Daily Scanner results
+        if: ${{ steps.market_time.outputs.run_scan == 'true' && success() }}
         uses: actions/upload-artifact@v4
         with:
           name: daily-scanner-${{ github.run_id }}
