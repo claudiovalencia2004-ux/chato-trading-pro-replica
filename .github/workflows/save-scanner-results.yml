@@ -30,11 +30,21 @@ jobs:
             --out trader/scan-daily.json \
             --json
 
+      - name: Create timestamped Scanner result
+        if: ${{ always() && hashFiles('trader/scan-daily.json') != '' }}
+        run: |
+          mkdir -p trader/history
+          TIMESTAMP=$(date -u +'%Y-%m-%d_%H-%M-%S')
+          cp trader/scan-daily.json \
+            "trader/history/scan-daily-${TIMESTAMP}-${GITHUB_RUN_ID}.json"
+
       - name: Save Scanner artifact
         if: ${{ always() && hashFiles('trader/scan-daily.json') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: scanner-daily-${{ github.run_id }}
-          path: trader/scan-daily.json
+          path: |
+            trader/scan-daily.json
+            trader/history/*.json
           if-no-files-found: error
           retention-days: 30
