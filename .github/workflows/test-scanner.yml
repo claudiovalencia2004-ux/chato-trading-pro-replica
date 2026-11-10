@@ -69,6 +69,17 @@ jobs:
             --no-write \
             --json
 
+            
+      - name: Test Yahoo Finance 20 symbols
+        run: |
+          python trader-scanner/scan.py daily \
+            --symbols AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AMD,INTC,AVGO,JPM,BAC,WMT,COST,KO,PEP,XOM,CVX,DIS,NFLX \
+            --min-price 5 \
+            --min-volume 1000000 \
+            --no-write \
+            --json
+
+
 
 
 
