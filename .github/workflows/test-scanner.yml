@@ -52,4 +52,15 @@ jobs:
             --no-write \
             --json
 
+            
+      - name: Test Yahoo Finance connection
+        run: |
+          python trader-scanner/scan.py daily \
+            --symbols AAPL,MSFT,NVDA \
+            --min-price 5 \
+            --min-volume 1000000 \
+            --no-write \
+            --json
+
+
 
