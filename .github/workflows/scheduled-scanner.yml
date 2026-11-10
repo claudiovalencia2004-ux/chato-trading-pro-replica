@@ -1,0 +1,49 @@
+
+name: Scheduled Trading Scanner
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-trading-scanner
+  cancel-in-progress: false
+
+jobs:
+  daily-scanner:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Daily Scanner
+        run: |
+          python trader-scanner/scan.py daily \
+            --symbols AAPL,MSFT,NVDA \
+            --min-price 5 \
+            --min-volume 1000000 \
+            --out trader/scan-daily.json \
+            --json
+          STATUS=$?
+          if [ "$STATUS" -eq 1 ] && [ -f trader/scan-daily.json ]; then
+            python -c "import json; d=json.load(open('trader/scan-daily.json')); assert d.get('mode') == 'daily' and isinstance(d.get('hits'), list)"
+          elif [ "$STATUS" -ne 0 ]; then
+            exit "$STATUS"
+          fi
+
+      - name: Save Daily Scanner results
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-scanner-${{ github.run_id }}
+          path: trader/scan-daily.json
+          if-no-files-found: error
+          retention-days: 30
