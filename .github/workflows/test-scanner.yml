@@ -116,6 +116,38 @@ jobs:
           PY
 
 
+      - name: Diagnose unusable ORB charts
+        if: ${{ inputs.test_group == 'historical' || inputs.test_group == 'all' }}
+        run: |
+          python - <<'PY'
+          import importlib.util
+          import datetime
+
+          spec = importlib.util.spec_from_file_location(
+              "scanner", "trader-scanner/scan.py"
+          )
+          scanner = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(scanner)
+
+          path = "tests/fixtures/trader-scanner/wall5m-2026-10-19.json.gz"
+          data, errors = scanner.load_offline(path)
+
+          day = datetime.date(2026, 10, 19)
+          cutoff = datetime.time(10, 15)
+          n_range = 15 // scanner.BAR_MIN
+
+          unusable = []
+          for symbol, series in sorted(data.items()):
+              bars = scanner.session_bars(series, day, cutoff)
+              if not scanner.usable(bars, day, cutoff, n_range):
+                  unusable.append(symbol)
+
+          print("Unusable ORB charts:", len(unusable))
+          for symbol in unusable:
+              print("Unusable:", symbol)
+          PY
+
+
 
 
 
