@@ -86,6 +86,22 @@ jobs:
           if doc.get("scanned", 0) != doc.get("universe", -1):
               raise SystemExit("Scanner coverage is incomplete")
 
+          close_dates = doc.get("close_dates")
+
+          if not isinstance(close_dates, dict):
+              raise SystemExit("Missing or invalid close_dates")
+
+          if set(close_dates) != {today}:
+              raise SystemExit(
+                  "Scanner contains outdated close dates: "
+                  + str(close_dates)
+              )
+
+          if sum(close_dates.values()) != doc["scanned"]:
+              raise SystemExit(
+                  "Close date counts do not match scanned symbols"
+              )
+
           hits = doc.get("hits", [])
 
           if not isinstance(hits, list):
